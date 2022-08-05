@@ -17,11 +17,11 @@ For now it only sets up the database but later on it will contain the backend & 
 
 ### Database Dump
 After creating the database either manually or via docker, you can either restore an empty database (schemas only) <br> 
-or a database with some data, it includes an admin user, a couple of normal users as well as a few books to play around with the API. <br>
+or a database with some data, it includes an admin user, a couple of normal users as well as a few books to play around with in the API. <br>
 The DB dumps can be found in the database folder
 
-* run `psql go_books < go_books_db_dump.sql` for a database with some sample data.
-* run `psql go_books < go_books_schema_only.sql` to create an empty database with all the required tables.
+* run `psql go_books < go_books_db_dump.sql` to create the tables with some sample data.
+* run `psql go_books < go_books_schema_only.sql` to just create the tables.
 
 ### Starting the server
 There are several flags that can be passed to change things like the default port, environment, database connection info ect.<br>
