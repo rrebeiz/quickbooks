@@ -175,7 +175,6 @@ func (app *application) getUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Just for testing
 func (app *application) getAllUsersHandler(w http.ResponseWriter, r *http.Request) {
 	users, err := app.models.Users.GetAll()
 	if err != nil {

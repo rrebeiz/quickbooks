@@ -15,6 +15,13 @@ For now it only sets up the database but later on it will contain the backend & 
 * Change the default if needed.
 * Then simply run `docker-compose up -d` to start the Postgresql container.
 
+### Database Dump
+After creating the database either manually or via docker, you can either restore an empty database (schemas only) <br> 
+or a database with some data, it includes an admin user, a couple of normal users as well as a few books to play around with the API. <br>
+The DB dumps can be found in the database folder
+
+* run `psql go_books < go_books_db_dump.sql` for a database with some sample data.
+* run `psql go_books < go_books_schema_only.sql` to create an empty database with all the required tables.
 
 ### Starting the server
 There are several flags that can be passed to change things like the default port, environment, database connection info ect.<br>
@@ -34,7 +41,10 @@ Once the server is up you can use Postman, or curl to send requests. A frontend 
 `/v1/users/authenticated` returns all currently logged-in users (Requires admin privileges) <br>
 `/v1/users/:id` returns a single user. (Requires authentication) <br>
 `/v1/users/auth` authenticates a user, by checking their token (Requires authentication) <br>
-`/v1/users/logout` `logs out a user, by deleting token from DB (Required authentication) <br>
+`/v1/users/logout` logs out a user, by deleting token from DB (Required authentication) <br>
+`/v1/books/` returns all books
+`/v1/books/:id` returns a book by ID
+`/v1/books/slug` returns a book by slug
 
 ## POST
 `/v1/users/login` logs in a user <br>
