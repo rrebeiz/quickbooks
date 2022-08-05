@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"github.com/mozillazg/go-slugify"
 	"github.com/rrebeiz/quickbooks/internal/validator"
-	"strconv"
-	"strings"
 	"time"
 )
 
@@ -29,7 +27,7 @@ type Author struct {
 	AuthorName string    `json:"author_name"`
 	CreatedAt  time.Time `json:"-"`
 	UpdatedAt  time.Time `json:"-"`
-	Version    int       `json:"version"`
+	Version    int       `json:"-"`
 }
 
 type Genre struct {
@@ -40,7 +38,7 @@ type Genre struct {
 }
 
 type Books interface {
-	GetAll(genreIDs ...int) ([]*Book, error)
+	GetAll() ([]*Book, error)
 	GetByID(id int64) (*Book, error)
 	GetBySlug(slug string) (*Book, error)
 	Insert(book *Book) error
@@ -62,17 +60,9 @@ func ValidateBook(v *validator.Validator, book *Book) {
 	v.Check(book.PublicationYear > 0, "publication_year", "should not be empty")
 }
 
-func (b BookModel) GetAll(genreIDs ...int) ([]*Book, error) {
-	where := ""
-	if len(genreIDs) > 0 {
-		var IDs []string
-		for _, x := range genreIDs {
-			IDs = append(IDs, strconv.Itoa(x))
-		}
-		where = fmt.Sprintf("where b.id in (%s)", strings.Join(IDs, ","))
-	}
-	query := fmt.Sprintf(`select b.id, b.title, b.author_id, b.publication_year, b.slug, b.description, b.created_at, 
-						b.updated_at, a.id, a.author_name, a.created_at, a.updated_at, a.version from books b left join authors a on (b.author_id = a.id) %s order by b.title`, where)
+func (b BookModel) GetAll() ([]*Book, error) {
+	query := `select b.id, b.title, b.author_id, b.publication_year, b.slug, b.description, b.created_at, 
+						b.updated_at, a.id, a.author_name, a.created_at, a.updated_at, a.version from books b left join authors a on (b.author_id = a.id) order by b.title`
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	var books []*Book
