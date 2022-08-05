@@ -1,5 +1,5 @@
 # Quickbooks
-## Welcome to Quickbook
+## Welcome to Quickbooks
 
 ### About Quickbooks
 Quickbooks is the backend which allows you to create and manage your own library of books & users.

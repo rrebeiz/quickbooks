@@ -26,6 +26,7 @@ func (app *application) routes() http.Handler {
 		router.Patch("/v1/users/{id}", app.updateUserHandler)
 		router.Post("/v1/books", app.createBookHandler)
 		router.Patch("/v1/books/{id}", app.updateBookHandler)
+		router.Delete("/v1/books/{id}", app.deleteBookHandler)
 	})
 	router.Group(func(router chi.Router) {
 		router.Use(app.adminMiddleware)

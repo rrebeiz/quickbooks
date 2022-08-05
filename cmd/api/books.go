@@ -191,3 +191,27 @@ func (app *application) updateBookHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 }
+
+func (app *application) deleteBookHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := app.readParamID(r)
+	if err != nil {
+		app.notfoundResponse(w, r)
+		return
+	}
+	err = app.models.Books.Delete(id)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrNoRecordFound):
+			app.notfoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+	msg := fmt.Sprintf("book with ID %d deleted.", id)
+	err = app.writeJSON(w, http.StatusOK, envelope{"message": msg}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+}

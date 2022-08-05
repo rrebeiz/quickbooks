@@ -216,7 +216,8 @@ CREATE TABLE public.users (
     email text NOT NULL,
     password_hash bytea NOT NULL,
     version integer DEFAULT 1 NOT NULL,
-    account_type character varying(255) DEFAULT 'user'::character varying NOT NULL
+    account_type character varying(255) DEFAULT 'user'::character varying NOT NULL,
+    updated_at timestamp(0) with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -307,7 +308,6 @@ COPY public.books (id, title, author_id, publication_year, created_at, updated_a
 5	God Emperor of Dune	2	1981	2022-08-01 07:36:42+00	2022-08-01 07:36:42+00	god-emperor-of-dune	Leto II Atreides, the God Emperor, has ruled the universe as a tyrant for 3,500 years after becoming a hybrid of human and giant sandworm in Children of Dune.
 6	Heretics of Dune	2	1984	2022-08-01 07:37:36+00	2022-08-01 07:37:36+00	heretics-of-dune	Heretics of Dune tells of life 3,500 years after the death of the Tyrant, Leto II, as ferocious "Honored Matres" stream in from the "Scattering," and the Bene Gesserit work to unite a ghola, Duncan Idaho, and a Fremen girl, Sheeana, who has the power to command worms.
 7	Chapterhouse: Dune	2	1985	2022-08-01 07:39:00+00	2022-08-01 07:39:00+00	chapterhouse:-dune	A direct follow-up to Heretics of Dune, the novel chronicles the continued struggles of the Bene Gesserit Sisterhood against the violent Honored Matres, who are succeeding in their bid to seize control of the universe and destroy the factions and planets that oppose them.
-9	Test Book 2	2	2022	2022-08-01 14:51:59+00	2022-08-01 14:51:59+00	test-book-2	A test book 2
 8	Test Book	2	2022	2022-08-01 14:50:31+00	2022-08-02 05:03:00+00	test-book	A test book
 \.
 
@@ -320,6 +320,13 @@ COPY public.books_genres (id, book_id, genre_id, created_at, updated_at) FROM st
 2	1	9	2022-08-02 04:17:02+00	2022-08-02 04:17:02+00
 16	8	4	2022-08-02 05:03:00+00	2022-08-02 05:03:00+00
 17	8	5	2022-08-02 05:03:00+00	2022-08-02 05:03:00+00
+18	2	1	2022-08-05 14:33:45+00	2022-08-05 14:33:45+00
+19	3	1	2022-08-05 14:33:48+00	2022-08-05 14:33:48+00
+20	4	1	2022-08-05 14:33:50+00	2022-08-05 14:33:50+00
+21	5	1	2022-08-05 14:33:56+00	2022-08-05 14:33:56+00
+22	6	1	2022-08-05 14:33:58+00	2022-08-05 14:33:58+00
+23	7	1	2022-08-05 14:34:01+00	2022-08-05 14:34:01+00
+24	8	1	2022-08-05 14:34:03+00	2022-08-05 14:34:03+00
 \.
 
 
@@ -344,7 +351,8 @@ COPY public.genres (id, genre_name, created_at, updated_at) FROM stdin;
 --
 
 COPY public.tokens (id, user_id, email, token, token_hash, created_at, updated_at, expiry) FROM stdin;
-76	1	admin@test.com	L5EDAWMN7AMQC646EEEAFZOOTI	\\x3c7826214f0df2119a8648adea9b984603b6000f107de4da862c6a20edc8b6de	2022-08-03 04:23:09+00	2022-08-03 04:23:09+00	2022-08-04 04:23:09+00
+77	3	test2@test.com	YKSH3XDYNA3K6JSTMZKWFCUH5Y	\\x5b882923bd8d2d92e95b004cbf22ac6927a0c42865e61205baa35b7f43a31089	2022-08-05 14:35:18+00	2022-08-05 14:35:18+00	2022-08-06 14:35:18+00
+78	1	admin@test.com	NQMKNX43UPOYKXXU4VTO32KXME	\\x72c38f22bf26c004e2337994aa790ffda378dd554881765d82dcb02ae14acfa5	2022-08-05 14:48:33+00	2022-08-05 14:48:33+00	2022-08-06 14:48:33+00
 \.
 
 
@@ -352,11 +360,11 @@ COPY public.tokens (id, user_id, email, token, token_hash, created_at, updated_a
 -- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: devuser
 --
 
-COPY public.users (id, created_at, name, email, password_hash, version, account_type) FROM stdin;
-1	2022-07-25 14:53:01+00	Admin	admin@test.com	\\x24326124313224776b557478435775386d323934746759314f7877742e635362567a575866415639516c52656c35364b3167705238366e7353573147	3	admin
-3	2022-07-27 15:08:32+00	Test2	test2@test.com	\\x243261243132243735374177647a354a736959326e555172446a734c4f70505042546c66436a782e317564712f3333307033575a3853746572727757	6	user
-14	2022-07-29 08:37:53+00	Test3	test3@test.com	\\x243261243132246d416b4269572e363861706b395a6b70414b684e372e635230714a5a3139474c39686e6a5a30796750476b317366586c6370412f79	1	user
-15	2022-08-03 04:01:09+00	test4	test4@test.com	\\x243261243132244b5863737541366f6d74706541516a58622f62716f4f72453931546b776a772f5a4b6a75476f544a38392e37543838674637672f36	1	user
+COPY public.users (id, created_at, name, email, password_hash, version, account_type, updated_at) FROM stdin;
+1	2022-07-25 14:53:01+00	Admin	admin@test.com	\\x24326124313224776b557478435775386d323934746759314f7877742e635362567a575866415639516c52656c35364b3167705238366e7353573147	3	admin	2022-08-05 14:47:22+00
+3	2022-07-27 15:08:32+00	Test2	test2@test.com	\\x243261243132243735374177647a354a736959326e555172446a734c4f70505042546c66436a782e317564712f3333307033575a3853746572727757	6	user	2022-08-05 14:47:22+00
+14	2022-07-29 08:37:53+00	Test3	test3@test.com	\\x243261243132246d416b4269572e363861706b395a6b70414b684e372e635230714a5a3139474c39686e6a5a30796750476b317366586c6370412f79	1	user	2022-08-05 14:47:22+00
+15	2022-08-03 04:01:09+00	test4	test4@test.com	\\x243261243132244b5863737541366f6d74706541516a58622f62716f4f72453931546b776a772f5a4b6a75476f544a38392e37543838674637672f36	1	user	2022-08-05 14:47:22+00
 \.
 
 
@@ -371,7 +379,7 @@ SELECT pg_catalog.setval('public.authors_id_seq', 2, true);
 -- Name: books_genres_id_seq; Type: SEQUENCE SET; Schema: public; Owner: devuser
 --
 
-SELECT pg_catalog.setval('public.books_genres_id_seq', 17, true);
+SELECT pg_catalog.setval('public.books_genres_id_seq', 25, true);
 
 
 --
@@ -392,7 +400,7 @@ SELECT pg_catalog.setval('public.genres_id_seq', 9, true);
 -- Name: tokens_id_seq; Type: SEQUENCE SET; Schema: public; Owner: devuser
 --
 
-SELECT pg_catalog.setval('public.tokens_id_seq', 76, true);
+SELECT pg_catalog.setval('public.tokens_id_seq', 78, true);
 
 
 --

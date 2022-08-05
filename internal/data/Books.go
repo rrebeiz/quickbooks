@@ -21,22 +21,22 @@ type Book struct {
 	Author          Author    `json:"author"`
 	Description     string    `json:"description"`
 	Genres          []string  `json:"genres"`
-	CreatedAt       time.Time `json:"created_at"`
-	UpdatedAt       time.Time `json:"updated_at"`
+	CreatedAt       time.Time `json:"-"`
+	UpdatedAt       time.Time `json:"-"`
 }
 type Author struct {
 	ID         int64     `json:"id"`
 	AuthorName string    `json:"author_name"`
-	CreatedAt  time.Time `json:"created_at"`
-	UpdatedAt  time.Time `json:"updated_at"`
+	CreatedAt  time.Time `json:"-"`
+	UpdatedAt  time.Time `json:"-"`
 	Version    int       `json:"version"`
 }
 
 type Genre struct {
 	ID        int64     `json:"id"`
 	GenreName string    `json:"genre_name"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	CreatedAt time.Time `json:"-"`
+	UpdatedAt time.Time `json:"-"`
 }
 
 type Books interface {
@@ -99,9 +99,8 @@ func (b BookModel) GetAll(genreIDs ...int) ([]*Book, error) {
 			return nil, err
 		}
 		for i := range genres {
-			book.Genres[i] = genres[i].GenreName
+			book.Genres = append(book.Genres, genres[i].GenreName)
 		}
-		//book.Genres = genres
 		books = append(books, &book)
 	}
 	err = rows.Err()
@@ -136,7 +135,6 @@ func (b BookModel) GetByID(id int64) (*Book, error) {
 		bookGenres = append(bookGenres, x.GenreName)
 	}
 	book.Genres = bookGenres
-	//book.Genres = genres
 	return &book, nil
 }
 
@@ -165,7 +163,6 @@ func (b BookModel) GetBySlug(slug string) (*Book, error) {
 		bookGenres = append(bookGenres, x.GenreName)
 	}
 	book.Genres = bookGenres
-	//book.Genres = genres
 	return &book, nil
 }
 

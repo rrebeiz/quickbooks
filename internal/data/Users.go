@@ -34,6 +34,7 @@ type User struct {
 	Email       string    `json:"email"`
 	Password    Password  `json:"-"`
 	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 	Version     int       `json:"version"`
 	AccountType string    `json:"account_type"`
 	Token       Token     `json:"token"`
@@ -89,11 +90,11 @@ func (p *Password) CheckPassword(password, pepper string) (bool, error) {
 }
 
 func (u UserModel) GetByEmail(email string) (*User, error) {
-	query := `select id, name, email, password_hash, created_at, version, account_type from users where email = $1`
+	query := `select id, name, email, password_hash, created_at, updated_at, version, account_type from users where email = $1`
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	var user User
-	err := u.DB.QueryRowContext(ctx, query, email).Scan(&user.ID, &user.Name, &user.Email, &user.Password.Hash, &user.CreatedAt, &user.Version, &user.AccountType)
+	err := u.DB.QueryRowContext(ctx, query, email).Scan(&user.ID, &user.Name, &user.Email, &user.Password.Hash, &user.CreatedAt, &user.UpdatedAt, &user.Version, &user.AccountType)
 
 	if err != nil {
 		switch {
@@ -107,12 +108,12 @@ func (u UserModel) GetByEmail(email string) (*User, error) {
 }
 
 func (u UserModel) Insert(user *User) error {
-	query := `insert into users (name, email, password_hash) values($1, $2, $3) returning id, created_at, version`
+	query := `insert into users (name, email, password_hash) values($1, $2, $3) returning id, created_at, updated_at, version`
 	args := []interface{}{user.Name, user.Email, user.Password.Hash}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	err := u.DB.QueryRowContext(ctx, query, args...).Scan(&user.ID, &user.CreatedAt, &user.Version)
+	err := u.DB.QueryRowContext(ctx, query, args...).Scan(&user.ID, &user.CreatedAt, &user.UpdatedAt, &user.Version)
 	if err != nil {
 		switch {
 		case err.Error() == `pq: duplicate key value violates unique constraint "users_email_key"`:
@@ -125,7 +126,7 @@ func (u UserModel) Insert(user *User) error {
 }
 
 func (u UserModel) GetAll() ([]*User, error) {
-	query := `select id, name, email, password_hash, created_at, version, account_type from users order by name`
+	query := `select id, name, email, password_hash, created_at, updated_at, version, account_type from users order by name`
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	var users []*User
@@ -136,7 +137,7 @@ func (u UserModel) GetAll() ([]*User, error) {
 	defer rows.Close()
 	for rows.Next() {
 		var user User
-		err := rows.Scan(&user.ID, &user.Name, &user.Email, &user.Password.Hash, &user.CreatedAt, &user.Version, &user.AccountType)
+		err := rows.Scan(&user.ID, &user.Name, &user.Email, &user.Password.Hash, &user.CreatedAt, &user.UpdatedAt, &user.Version, &user.AccountType)
 		if err != nil {
 			return nil, err
 		}
@@ -155,7 +156,7 @@ func (u UserModel) GetAll() ([]*User, error) {
 	return users, nil
 }
 func (u UserModel) GetAllLoggedIn() ([]*User, error) {
-	query := `select users.id, users.name, users.email, users.password_hash, users.created_at, users.version, users.account_type,
+	query := `select users.id, users.name, users.email, users.password_hash, users.created_at, users.updated_at, users.version, users.account_type,
 	  tokens.id, tokens.user_id, tokens.email, tokens.token, tokens.token_hash, tokens.created_at, tokens.updated_at, tokens.expiry from users inner join tokens on users.id = tokens.user_id order by name`
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -167,7 +168,7 @@ func (u UserModel) GetAllLoggedIn() ([]*User, error) {
 	}
 	for rows.Next() {
 		var user User
-		err := rows.Scan(&user.ID, &user.Name, &user.Email, &user.Password.Hash, &user.CreatedAt, &user.Version, &user.AccountType, &user.Token.ID,
+		err := rows.Scan(&user.ID, &user.Name, &user.Email, &user.Password.Hash, &user.CreatedAt, &user.UpdatedAt, &user.Version, &user.AccountType, &user.Token.ID,
 			&user.Token.UserID, &user.Token.Email, &user.Token.Token, &user.Token.TokenHash, &user.Token.CreatedAt, &user.Token.UpdatedAt, &user.Token.Expiry)
 		if err != nil {
 			return nil, err
@@ -185,11 +186,11 @@ func (u UserModel) GetByID(id int64) (*User, error) {
 	if id < 1 {
 		return nil, ErrNoRecordFound
 	}
-	query := `select id, name, email, password_hash, created_at, version, account_type from users where id = $1`
+	query := `select id, name, email, password_hash, created_at, updated_at, version, account_type from users where id = $1`
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	var user User
-	err := u.DB.QueryRowContext(ctx, query, id).Scan(&user.ID, &user.Name, &user.Email, &user.Password.Hash, &user.CreatedAt, &user.Version, &user.AccountType)
+	err := u.DB.QueryRowContext(ctx, query, id).Scan(&user.ID, &user.Name, &user.Email, &user.Password.Hash, &user.CreatedAt, &user.UpdatedAt, &user.Version, &user.AccountType)
 	if err != nil {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
@@ -230,11 +231,11 @@ func (u UserModel) Delete(id int64) error {
 }
 
 func (u UserModel) Update(user *User) error {
-	query := `update users set name = $1, email = $2, password_hash = $3, version = version + 1 where id = $4 returning created_at`
+	query := `update users set name = $1, email = $2, password_hash = $3, updated_at = now(), version = version + 1 where id = $4 returning updated_at`
 	args := []interface{}{user.Name, user.Email, user.Password.Hash, user.ID}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	err := u.DB.QueryRowContext(ctx, query, args...).Scan(&user.CreatedAt)
+	err := u.DB.QueryRowContext(ctx, query, args...).Scan(&user.UpdatedAt)
 	if err != nil {
 		switch {
 		case err.Error() == `pq: duplicate key value violates unique constraint "users_email_key"`:

@@ -216,7 +216,8 @@ CREATE TABLE public.users (
     email text NOT NULL,
     password_hash bytea NOT NULL,
     version integer DEFAULT 1 NOT NULL,
-    account_type character varying(255) DEFAULT 'user'::character varying NOT NULL
+    account_type character varying(255) DEFAULT 'user'::character varying NOT NULL,
+    updated_at timestamp(0) with time zone DEFAULT now() NOT NULL
 );
 
 

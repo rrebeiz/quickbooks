@@ -1,5 +1,6 @@
 .DS_Store
 /db-data/postgres
+/bin/backend
 
 # local env files
 
