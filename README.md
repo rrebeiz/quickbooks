@@ -42,9 +42,9 @@ Once the server is up you can use Postman, or curl to send requests. A frontend 
 `/v1/users/:id` returns a single user. (Requires authentication) <br>
 `/v1/users/auth` authenticates a user, by checking their token (Requires authentication) <br>
 `/v1/users/logout` logs out a user, by deleting token from DB (Required authentication) <br>
-`/v1/books/` returns all books
-`/v1/books/:id` returns a book by ID
-`/v1/books/slug` returns a book by slug
+`/v1/books/` returns all books <br>
+`/v1/books/:id` returns a book by ID <br>
+`/v1/books/slug` returns a book by slug <br>
 
 ## POST
 `/v1/users/login` logs in a user <br>
