@@ -343,6 +343,13 @@ ALTER TABLE ONLY public.users
 
 
 --
+-- Name: books_title_idx; Type: INDEX; Schema: public; Owner: devuser
+--
+
+CREATE INDEX books_title_idx ON public.books USING gin (to_tsvector('simple'::regconfig, (title)::text));
+
+
+--
 -- Name: books books_author_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: devuser
 --
 

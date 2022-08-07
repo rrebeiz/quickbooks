@@ -351,8 +351,7 @@ COPY public.genres (id, genre_name, created_at, updated_at) FROM stdin;
 --
 
 COPY public.tokens (id, user_id, email, token, token_hash, created_at, updated_at, expiry) FROM stdin;
-77	3	test2@test.com	YKSH3XDYNA3K6JSTMZKWFCUH5Y	\\x5b882923bd8d2d92e95b004cbf22ac6927a0c42865e61205baa35b7f43a31089	2022-08-05 14:35:18+00	2022-08-05 14:35:18+00	2022-08-06 14:35:18+00
-78	1	admin@test.com	NQMKNX43UPOYKXXU4VTO32KXME	\\x72c38f22bf26c004e2337994aa790ffda378dd554881765d82dcb02ae14acfa5	2022-08-05 14:48:33+00	2022-08-05 14:48:33+00	2022-08-06 14:48:33+00
+79	1	admin@test.com	46RSVYVIJLNKMDLXU6QAZ5PZJA	\\x5e6e85b86f3967b5a28abcdcaffbdbcf8a7d4fdc8e6fd7ecd4e86bf2f6ddbfdf	2022-08-07 06:41:02+00	2022-08-07 06:41:02+00	2022-08-08 06:41:02+00
 \.
 
 
@@ -400,7 +399,7 @@ SELECT pg_catalog.setval('public.genres_id_seq', 9, true);
 -- Name: tokens_id_seq; Type: SEQUENCE SET; Schema: public; Owner: devuser
 --
 
-SELECT pg_catalog.setval('public.tokens_id_seq', 78, true);
+SELECT pg_catalog.setval('public.tokens_id_seq', 80, true);
 
 
 --
@@ -464,6 +463,13 @@ ALTER TABLE ONLY public.users
 
 ALTER TABLE ONLY public.users
     ADD CONSTRAINT users_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: books_title_idx; Type: INDEX; Schema: public; Owner: devuser
+--
+
+CREATE INDEX books_title_idx ON public.books USING gin (to_tsvector('simple'::regconfig, (title)::text));
 
 
 --
