@@ -230,7 +230,8 @@ Logs in a new using their credentials.
 * Method: POST
 * URL Params: None
 * Body Params:
-  * `{"email":"test@test.com", "password":"password"}`
+  * Required:
+    * `{"email":"test@test.com", "password":"password"}`
 * Success Response:
   * Code: 200
   * Content: {"user":{"id":1, "name":"test", "email":"test@email.com"...}}
@@ -254,6 +255,8 @@ Creates a new user.
   * Code: 200
   * Content: {"user":{"id":1, "name":"test", "email":"test@email.com"...}}
 * Error Response:
+  * Code: 400
+  * Content: {"error": "email address already taken"}
   * Code: 422
   * Content: {"error": {"name":"should not be empty","email":"should not be empty", "password":"should not be empty"}}
   * Code: 500
@@ -290,6 +293,8 @@ Updates a user.
   * Code: 200
   * Content: {"user":{"id":1, "name":"test", "email":"test@email.com"...}}
 * Error Response:
+  * Code: 400
+  * Content: {"error": "email address already taken"}
   * Code: 401
   * Content: {"error": "you are not authorized to view this content"}
   * Code: 404

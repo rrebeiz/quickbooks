@@ -10,13 +10,25 @@ func (app *application) authTokenMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		plainTextToken, err := app.readAuthHeader(r)
 		if err != nil {
-			app.noAuthorizationHeaderResponse(w, r)
+			switch {
+			case errors.Is(err, ErrNoAuthHeader):
+				app.noAuthorizationHeaderResponse(w, r)
+			case errors.Is(err, data.ErrNoRecordFound):
+				app.notAuthorizedResponse(w, r)
+			default:
+				app.serverErrorResponse(w, r, err)
+			}
 			return
 		}
 
 		_, err = app.getValidToken(plainTextToken)
 		if err != nil {
-			app.notAuthorizedResponse(w, r)
+			switch {
+			case errors.Is(err, data.ErrNoRecordFound):
+				app.notAuthorizedResponse(w, r)
+			default:
+				app.serverErrorResponse(w, r, err)
+			}
 			return
 		}
 
