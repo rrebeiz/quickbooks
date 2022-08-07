@@ -43,7 +43,7 @@ func (app *application) loginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !checkPassword {
-		app.failedAuthenticationResponse(w, r)
+		app.notAuthorizedResponse(w, r)
 		return
 	}
 
@@ -77,18 +77,18 @@ func (app *application) authenticateToken(w http.ResponseWriter, r *http.Request
 
 	tkn, err := app.models.Tokens.GetByToken(*token)
 	if err != nil {
-		app.failedAuthenticationResponse(w, r)
+		app.notAuthorizedResponse(w, r)
 		return
 	}
 
 	if tkn.Expiry.Before(time.Now()) {
-		app.failedAuthenticationResponse(w, r)
+		app.notAuthorizedResponse(w, r)
 		return
 	}
 
 	user, err := app.models.Tokens.GetUserForToken(tkn)
 	if err != nil {
-		app.failedAuthenticationResponse(w, r)
+		app.notAuthorizedResponse(w, r)
 		return
 	}
 
@@ -108,11 +108,11 @@ func (app *application) logoutHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	tkn, err := app.models.Tokens.GetByToken(*token)
 	if err != nil {
-		app.failedAuthenticationResponse(w, r)
+		app.notAuthorizedResponse(w, r)
 		return
 	}
 	if tkn.Expiry.Before(time.Now()) {
-		app.failedAuthenticationResponse(w, r)
+		app.notAuthorizedResponse(w, r)
 	}
 
 	err = app.models.Tokens.DeleteToken(tkn.ID)

@@ -5,8 +5,10 @@ import (
 	"errors"
 	"github.com/go-chi/chi/v5"
 	"github.com/rrebeiz/quickbooks/internal/data"
+	"github.com/rrebeiz/quickbooks/internal/validator"
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -103,4 +105,33 @@ func (app *application) getValidToken(plainTextToken *string) (*data.Token, erro
 		return nil, err
 	}
 	return token, nil
+}
+
+func (app *application) readString(qs url.Values, key string, defaultValue string) string {
+	s := qs.Get(key)
+	if s == "" {
+		return defaultValue
+	}
+	return s
+}
+
+func (app *application) readCSV(qs url.Values, key string, defaultValue []string) []string {
+	csv := qs.Get(key)
+	if csv == "" {
+		return defaultValue
+	}
+	return strings.Split(csv, ",")
+}
+
+func (app *application) readInt(qs url.Values, key string, defaultValue int, v *validator.Validator) int {
+	s := qs.Get(key)
+	if s == "" {
+		return defaultValue
+	}
+	i, err := strconv.Atoi(s)
+	if err != nil {
+		v.AddError(key, "must be an integer")
+		return defaultValue
+	}
+	return i
 }

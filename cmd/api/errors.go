@@ -41,8 +41,8 @@ func (app *application) failedValidationResponse(w http.ResponseWriter, r *http.
 	app.errorResponse(w, r, http.StatusUnprocessableEntity, errors)
 }
 
-func (app *application) failedAuthenticationResponse(w http.ResponseWriter, r *http.Request) {
-	message := "authentication failed"
+func (app *application) notAuthorizedResponse(w http.ResponseWriter, r *http.Request) {
+	message := "you are not authorized to view this content"
 	app.errorResponse(w, r, http.StatusUnauthorized, message)
 }
 

@@ -9,7 +9,27 @@ import (
 )
 
 func (app *application) getAllBooksHandler(w http.ResponseWriter, r *http.Request) {
-	books, err := app.models.Books.GetAll()
+	var input struct {
+		Title string
+		data.Filters
+	}
+	v := validator.NewValidator()
+
+	qs := r.URL.Query()
+	input.Title = app.readString(qs, "title", "")
+	input.Filters.Page = app.readInt(qs, "page", 1, v)
+	input.Filters.PageSize = app.readInt(qs, "page_size", 20, v)
+	input.Filters.Sort = app.readString(qs, "sort", "id")
+	input.Filters.SortSafeList = []string{"id", "title", "publication_year", "-id", "-title", "-publication_year"}
+
+	data.ValidateFilters(v, input.Filters)
+
+	if !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+
+	books, metadata, err := app.models.Books.GetAll(input.Title, input.Filters)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrNoRecordFound):
@@ -19,7 +39,7 @@ func (app *application) getAllBooksHandler(w http.ResponseWriter, r *http.Reques
 		}
 		return
 	}
-	err = app.writeJSON(w, http.StatusOK, envelope{"books": books}, nil)
+	err = app.writeJSON(w, http.StatusOK, envelope{"books": books, "metadata": metadata}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
@@ -52,13 +72,11 @@ func (app *application) getBookByIDHandler(w http.ResponseWriter, r *http.Reques
 
 func (app *application) getBookBySlugHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
-		Slug string `json:"slug"`
+		Slug string
 	}
-	err := app.readJSON(w, r, &input)
-	if err != nil {
-		app.badRequestResponse(w, r, err)
-		return
-	}
+	qs := r.URL.Query()
+	input.Slug = app.readString(qs, "slug", "")
+
 	book, err := app.models.Books.GetBySlug(input.Slug)
 	if err != nil {
 		switch {
@@ -210,6 +228,38 @@ func (app *application) deleteBookHandler(w http.ResponseWriter, r *http.Request
 	}
 	msg := fmt.Sprintf("book with ID %d deleted.", id)
 	err = app.writeJSON(w, http.StatusOK, envelope{"message": msg}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+}
+
+func (app *application) getAllAuthorsHandler(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		Author string
+		data.Filters
+	}
+	v := validator.NewValidator()
+
+	qs := r.URL.Query()
+	input.Author = app.readString(qs, "author_name", "")
+	input.Filters.Page = app.readInt(qs, "page", 1, v)
+	input.Filters.PageSize = app.readInt(qs, "page_size", 20, v)
+	input.Filters.Sort = app.readString(qs, "sort", "id")
+	input.Filters.SortSafeList = []string{"id", "author_name", "-id", "-author_name"}
+
+	data.ValidateFilters(v, input.Filters)
+
+	if !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+	authors, metadata, err := app.models.Books.GetAllAuthors(input.Author, input.Filters)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	err = app.writeJSON(w, http.StatusOK, envelope{"authors": authors, "metadata": metadata}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return

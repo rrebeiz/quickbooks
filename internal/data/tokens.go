@@ -57,7 +57,9 @@ func (t TokenModel) GetByToken(plainText string) (*Token, error) {
 
 func (t TokenModel) GetUserForToken(token *Token) (*User, error) {
 	//query := `select id, name, email, password_hash, created_at, version from users where id = $1`
-	query := `select users.id, users.name, users.email, users.password_hash, users.created_at, users.version, users.account_type, tokens.id, tokens.user_id, tokens.email, tokens.token, tokens.token_hash, tokens.created_at, tokens.updated_at, tokens.expiry from users inner join tokens on users.id = tokens.user_id where users.id = $1`
+	query := `select users.id, users.name, users.email, users.password_hash, users.created_at, users.version, users.account_type, tokens.id, 
+       tokens.user_id, tokens.email, tokens.token, tokens.token_hash, tokens.created_at, tokens.updated_at, tokens.expiry 
+		from users inner join tokens on users.id = tokens.user_id where users.id = $1`
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 

@@ -156,8 +156,8 @@ func (u UserModel) GetAll() ([]*User, error) {
 	return users, nil
 }
 func (u UserModel) GetAllLoggedIn() ([]*User, error) {
-	query := `select users.id, users.name, users.email, users.password_hash, users.created_at, users.updated_at, users.version, users.account_type,
-	  tokens.id, tokens.user_id, tokens.email, tokens.token, tokens.token_hash, tokens.created_at, tokens.updated_at, tokens.expiry from users inner join tokens on users.id = tokens.user_id order by name`
+	query := `select u.id, u.name, u.email, u.password_hash, u.created_at, u.updated_at, u.version, u.account_type,
+	  t.id, t.user_id, t.email, t.token, t.token_hash, t.created_at, t.updated_at, t.expiry from users u inner join tokens t on u.id = t.user_id order by name`
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 

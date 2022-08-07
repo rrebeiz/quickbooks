@@ -45,6 +45,7 @@ func (app *application) routes() http.Handler {
 	router.Get("/v1/books", app.getAllBooksHandler)
 	router.Get("/v1/books/{id}", app.getBookByIDHandler)
 	router.Get("/v1/books/slug", app.getBookBySlugHandler)
+	router.Get("/v1/books/authors", app.getAllAuthorsHandler)
 
 	return router
 }

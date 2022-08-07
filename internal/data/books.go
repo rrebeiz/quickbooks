@@ -38,12 +38,13 @@ type Genre struct {
 }
 
 type Books interface {
-	GetAll() ([]*Book, error)
+	GetAll(title string, filters Filters) ([]*Book, Metadata, error)
 	GetByID(id int64) (*Book, error)
 	GetBySlug(slug string) (*Book, error)
 	Insert(book *Book) error
 	Update(book *Book) error
 	Delete(id int64) error
+	GetAllAuthors(author string, filters Filters) ([]*Author, Metadata, error)
 }
 
 type BookModel struct {
@@ -60,33 +61,38 @@ func ValidateBook(v *validator.Validator, book *Book) {
 	v.Check(book.PublicationYear > 0, "publication_year", "should not be empty")
 }
 
-func (b BookModel) GetAll() ([]*Book, error) {
-	query := `select b.id, b.title, b.author_id, b.publication_year, b.slug, b.description, b.created_at, 
-						b.updated_at, a.id, a.author_name, a.created_at, a.updated_at, a.version from books b left join authors a on (b.author_id = a.id) order by b.title`
+func (b BookModel) GetAll(title string, filters Filters) ([]*Book, Metadata, error) {
+	query := fmt.Sprintf(`select count (*) over(), b.id, b.title, b.author_id, b.publication_year, b.slug, b.description, b.created_at, 
+						b.updated_at, a.id, a.author_name, a.created_at, a.updated_at, a.version from books b left join authors a on (b.author_id = a.id) 
+						where (to_tsvector('simple', title) @@ plainto_tsquery('simple', $1) OR $1 = '')  
+						order by b.%s %s, b.id ASC limit $2 offset $3`, filters.sortColumn(), filters.sortDirection())
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	var books []*Book
+	args := []interface{}{title, filters.limit(), filters.offset()}
 
-	rows, err := b.DB.QueryContext(ctx, query)
+	rows, err := b.DB.QueryContext(ctx, query, args...)
 	if err != nil {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
-			return nil, ErrNoRecordFound
+			return nil, Metadata{}, ErrNoRecordFound
 		default:
-			return nil, err
+			return nil, Metadata{}, err
 		}
 	}
+	totalRecords := 0
+
 	for rows.Next() {
 		var book Book
-		err := rows.Scan(&book.ID, &book.Title, &book.AuthorID, &book.PublicationYear, &book.Slug, &book.Description, &book.CreatedAt,
+		err := rows.Scan(&totalRecords, &book.ID, &book.Title, &book.AuthorID, &book.PublicationYear, &book.Slug, &book.Description, &book.CreatedAt,
 			&book.UpdatedAt, &book.Author.ID, &book.Author.AuthorName, &book.Author.CreatedAt, &book.Author.UpdatedAt, &book.Author.Version)
 		if err != nil {
-			return nil, err
+			return nil, Metadata{}, err
 		}
 
 		genres, err := b.genresByBook(book.ID)
 		if err != nil {
-			return nil, err
+			return nil, Metadata{}, err
 		}
 		for i := range genres {
 			book.Genres = append(book.Genres, genres[i].GenreName)
@@ -95,9 +101,10 @@ func (b BookModel) GetAll() ([]*Book, error) {
 	}
 	err = rows.Err()
 	if err != nil {
-		return nil, err
+		return nil, Metadata{}, err
 	}
-	return books, nil
+	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
+	return books, metadata, nil
 }
 
 func (b BookModel) GetByID(id int64) (*Book, error) {
@@ -214,6 +221,32 @@ func (b BookModel) Delete(id int64) error {
 		return err
 	}
 	return nil
+}
+
+func (b BookModel) GetAllAuthors(author string, filters Filters) ([]*Author, Metadata, error) {
+	query := fmt.Sprintf(`select count(*) over(), id, author_name from authors where (to_tsvector('simple', author_name) @@ plainto_tsquery('simple', $1) OR $1 = '') 
+			order by %s %s, id asc limit $2 offset $3`, filters.sortColumn(), filters.sortDirection())
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	var authors []*Author
+	args := []interface{}{author, filters.limit(), filters.offset()}
+	rows, err := b.DB.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, Metadata{}, err
+	}
+	defer rows.Close()
+	totalRecords := 0
+	for rows.Next() {
+		var author Author
+		err := rows.Scan(&totalRecords, &author.ID, &author.AuthorName)
+		if err != nil {
+			return nil, Metadata{}, err
+		}
+		authors = append(authors, &author)
+	}
+	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
+	return authors, metadata, nil
+
 }
 
 func (b BookModel) genresByBook(id int64) ([]*Genre, error) {
