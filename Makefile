@@ -24,3 +24,28 @@ stop:
 
 ## restart will restart the server
 restart: stop start
+
+
+## docker-build: builds the docker-compose
+docker-build: build
+	@echo "building with docker-compose"
+	docker-compose build
+	@echo "built!"
+
+## docker-run: builds and starts docker-compose
+docker-run: docker-build
+	@echo "Starting docker-compose..."
+	docker-compose up -d
+	@echo "Started"
+
+## docker-start: alias to run
+docker-start: docker-run
+
+## docker-stop: stops docker-compose
+docker-stop:
+	@echo "Stopping docker-compose"
+	docker-compose down
+	@echo "Stopped!"
+
+## docker-restart: restart docker-compose
+docker-restart: docker-stop docker-start

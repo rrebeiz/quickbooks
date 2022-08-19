@@ -7,7 +7,7 @@ services:
     image: 'postgres:14.0'
     ports:
       - "5432:5432"
-    restart: always
+    restart: unless-stopped
     environment:
       POSTGRES_USER: devuser
       POSTGRES_PASSWORD: password
@@ -15,3 +15,18 @@ services:
     volumes:
       - ./db-data/postgres/:/var/lib/postgresql/data
 
+
+  #start golang
+#  backend:
+#    build:
+#      context: .
+#      dockerfile: Dockerfile
+#    ports:
+#      - "4000:4000"
+#    restart: unless-stopped
+#    depends_on:
+#      - postgres
+#    links:
+#      - postgres
+#    environment:
+#      DSN: postgres://devuser:password@postgres/go_books?sslmode=disable

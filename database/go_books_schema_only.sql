@@ -167,6 +167,45 @@ ALTER SEQUENCE public.genres_id_seq OWNED BY public.genres.id;
 
 
 --
+-- Name: reviews; Type: TABLE; Schema: public; Owner: devuser
+--
+
+CREATE TABLE public.reviews (
+    id bigint NOT NULL,
+    rating integer DEFAULT 1 NOT NULL,
+    review text NOT NULL,
+    book_id bigint NOT NULL,
+    user_id bigint NOT NULL,
+    version integer DEFAULT 1 NOT NULL,
+    created_at timestamp(0) with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp(0) with time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.reviews OWNER TO devuser;
+
+--
+-- Name: reviews_id_seq; Type: SEQUENCE; Schema: public; Owner: devuser
+--
+
+CREATE SEQUENCE public.reviews_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.reviews_id_seq OWNER TO devuser;
+
+--
+-- Name: reviews_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: devuser
+--
+
+ALTER SEQUENCE public.reviews_id_seq OWNED BY public.reviews.id;
+
+
+--
 -- Name: tokens; Type: TABLE; Schema: public; Owner: devuser
 --
 
@@ -273,6 +312,13 @@ ALTER TABLE ONLY public.genres ALTER COLUMN id SET DEFAULT nextval('public.genre
 
 
 --
+-- Name: reviews id; Type: DEFAULT; Schema: public; Owner: devuser
+--
+
+ALTER TABLE ONLY public.reviews ALTER COLUMN id SET DEFAULT nextval('public.reviews_id_seq'::regclass);
+
+
+--
 -- Name: tokens id; Type: DEFAULT; Schema: public; Owner: devuser
 --
 
@@ -316,6 +362,14 @@ ALTER TABLE ONLY public.books
 
 ALTER TABLE ONLY public.genres
     ADD CONSTRAINT genres_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: reviews reviews_pkey; Type: CONSTRAINT; Schema: public; Owner: devuser
+--
+
+ALTER TABLE ONLY public.reviews
+    ADD CONSTRAINT reviews_pkey PRIMARY KEY (id);
 
 
 --
@@ -371,6 +425,22 @@ ALTER TABLE ONLY public.books_genres
 
 ALTER TABLE ONLY public.books_genres
     ADD CONSTRAINT books_genres_genre_id_fkey FOREIGN KEY (genre_id) REFERENCES public.genres(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: reviews reviews_books_book_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: devuser
+--
+
+ALTER TABLE ONLY public.reviews
+    ADD CONSTRAINT reviews_books_book_id_fkey FOREIGN KEY (book_id) REFERENCES public.books(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: reviews reviews_users_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: devuser
+--
+
+ALTER TABLE ONLY public.reviews
+    ADD CONSTRAINT reviews_users_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --

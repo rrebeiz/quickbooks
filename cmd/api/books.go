@@ -125,7 +125,9 @@ func (app *application) createBookHandler(w http.ResponseWriter, r *http.Request
 		app.serverErrorResponse(w, r, err)
 		return
 	}
-	err = app.writeJSON(w, http.StatusOK, envelope{"book": book}, nil)
+	headers := make(http.Header)
+	headers.Set("Location", fmt.Sprintf("/v1/books/%d", book.ID))
+	err = app.writeJSON(w, http.StatusOK, envelope{"book": book}, headers)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
@@ -260,6 +262,174 @@ func (app *application) getAllAuthorsHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	err = app.writeJSON(w, http.StatusOK, envelope{"authors": authors, "metadata": metadata}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+}
+
+func (app *application) getAllReviewsByUser(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		User string
+		data.Filters
+	}
+	v := validator.NewValidator()
+	qs := r.URL.Query()
+	input.User = app.readString(qs, "user", "")
+	input.Filters.Page = app.readInt(qs, "page", 1, v)
+	input.Filters.PageSize = app.readInt(qs, "page_size", 20, v)
+	input.Filters.Sort = app.readString(qs, "sort", "id")
+	input.Filters.SortSafeList = []string{"id", "user", "-id", "-user"}
+
+	data.ValidateFilters(v, input.Filters)
+
+	if !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+
+	reviews, metadata, err := app.models.Books.GetAllReviewsByUser(input.User, input.Filters)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+	err = app.writeJSON(w, http.StatusOK, envelope{"reviews": reviews, "metadata": metadata}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+}
+
+func (app *application) createReviewHandler(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		Rating int    `json:"rating"`
+		Review string `json:"review"`
+		BookID int64  `json:"book_id"`
+		UserID int64  `json:"user_id"`
+	}
+	err := app.readJSON(w, r, &input)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+	var review data.Review
+	review.Rating = input.Rating
+	review.Review = input.Review
+	review.BookID = input.BookID
+	review.UserID = input.UserID
+	v := validator.NewValidator()
+	data.ValidateReview(v, &review)
+	if !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+	err = app.models.Books.InsertReview(&review)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	err = app.writeJSON(w, http.StatusOK, envelope{"review": review}, nil)
+
+}
+
+func (app *application) updateReviewHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := app.readParamID(r)
+	if err != nil {
+		app.notfoundResponse(w, r)
+		return
+	}
+	review, err := app.models.Books.GetReviewByID(id)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrNoRecordFound):
+			app.notfoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+	var input struct {
+		Rating *int    `json:"rating"`
+		Review *string `json:"review"`
+	}
+
+	err = app.readJSON(w, r, &input)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+	v := validator.NewValidator()
+
+	if input.Rating != nil {
+		review.Rating = *input.Rating
+		v.Check(review.Rating > 0, "rating", "should not be empty")
+		v.Check(review.Rating <= 5, "rating", "should not be more than 5")
+	}
+
+	if input.Review != nil {
+		review.Review = *input.Review
+		v.Check(review.Review != "", "review", "should not be empty")
+	}
+
+	if !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+	review.ID = id
+	err = app.models.Books.UpdateReview(review)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrNoRecordFound):
+			app.notfoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+	err = app.writeJSON(w, http.StatusOK, envelope{"review": review}, nil)
+}
+
+func (app *application) getReviewByIDHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := app.readParamID(r)
+	if err != nil {
+		app.notfoundResponse(w, r)
+		return
+	}
+	review, err := app.models.Books.GetReviewByID(id)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrNoRecordFound):
+			app.notfoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+	err = app.writeJSON(w, http.StatusOK, envelope{"review": review}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+}
+
+func (app *application) deleteReviewHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := app.readParamID(r)
+	if err != nil {
+		app.notfoundResponse(w, r)
+		return
+	}
+	err = app.models.Books.DeleteReview(id)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrNoRecordFound):
+			app.notfoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+	message := fmt.Sprintf("review with ID: %d deleted", id)
+	err = app.writeJSON(w, http.StatusOK, envelope{"success": message}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return

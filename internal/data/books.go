@@ -19,6 +19,7 @@ type Book struct {
 	Author          Author    `json:"author"`
 	Description     string    `json:"description"`
 	Genres          []string  `json:"genres"`
+	Reviews         []*Review `json:"reviews,omitempty"`
 	CreatedAt       time.Time `json:"-"`
 	UpdatedAt       time.Time `json:"-"`
 }
@@ -36,6 +37,18 @@ type Genre struct {
 	CreatedAt time.Time `json:"-"`
 	UpdatedAt time.Time `json:"-"`
 }
+type Review struct {
+	ID        int64     `json:"id"`
+	Rating    int       `json:"rating"`
+	Review    string    `json:"review"`
+	BookID    int64     `json:"-"`
+	Book      string    `json:"book,omitempty"`
+	UserID    int64     `json:"-"`
+	User      string    `json:"user,omitempty"`
+	Version   int       `json:"-"`
+	CreatedAt time.Time `json:"-"`
+	UpdatedAt time.Time `json:"-"`
+}
 
 type Books interface {
 	GetAll(title string, filters Filters) ([]*Book, Metadata, error)
@@ -45,6 +58,11 @@ type Books interface {
 	Update(book *Book) error
 	Delete(id int64) error
 	GetAllAuthors(author string, filters Filters) ([]*Author, Metadata, error)
+	GetAllReviewsByUser(user string, filters Filters) ([]*Review, Metadata, error)
+	GetReviewByID(id int64) (*Review, error)
+	InsertReview(review *Review) error
+	UpdateReview(review *Review) error
+	DeleteReview(id int64) error
 }
 
 type BookModel struct {
@@ -59,6 +77,12 @@ func ValidateBook(v *validator.Validator, book *Book) {
 	v.Check(book.Title != "", "title", "should not be empty")
 	v.Check(book.Description != "", "description", "should not be empty")
 	v.Check(book.PublicationYear > 0, "publication_year", "should not be empty")
+}
+
+func ValidateReview(v *validator.Validator, review *Review) {
+	v.Check(review.Rating > 0, "rating", "should not be empty")
+	v.Check(review.Rating <= 5, "rating", "should not be bigger than 5")
+	v.Check(review.Review != "", "review", "should not be empty")
 }
 
 func (b BookModel) GetAll(title string, filters Filters) ([]*Book, Metadata, error) {
@@ -94,9 +118,14 @@ func (b BookModel) GetAll(title string, filters Filters) ([]*Book, Metadata, err
 		if err != nil {
 			return nil, Metadata{}, err
 		}
+		reviews, err := b.reviewsByBook(book.ID)
+		if err != nil {
+			return nil, Metadata{}, err
+		}
 		for i := range genres {
 			book.Genres = append(book.Genres, genres[i].GenreName)
 		}
+		book.Reviews = reviews
 		books = append(books, &book)
 	}
 	err = rows.Err()
@@ -127,11 +156,16 @@ func (b BookModel) GetByID(id int64) (*Book, error) {
 	if err != nil {
 		return nil, err
 	}
+	reviews, err := b.reviewsByBook(book.ID)
+	if err != nil {
+		return nil, err
+	}
 	var bookGenres []string
 	for _, x := range genres {
 		bookGenres = append(bookGenres, x.GenreName)
 	}
 	book.Genres = bookGenres
+	book.Reviews = reviews
 	return &book, nil
 }
 
@@ -248,6 +282,98 @@ func (b BookModel) GetAllAuthors(author string, filters Filters) ([]*Author, Met
 	return authors, metadata, nil
 
 }
+func (b BookModel) GetAllReviewsByUser(user string, filters Filters) ([]*Review, Metadata, error) {
+	query := fmt.Sprintf(`select count(*) over(), u.id, u.name, b.id, b.title, b.author_id, b.publication_year, r.id, r.rating, r.review, r.user_id, r.book_id from users u join reviews r on u.id = r.user_id join books b on b.id = r.book_id where (to_tsvector('simple', name) @@ plainto_tsquery('simple', $1) OR $1 = '') order by u.%s %s, u.id asc limit $2 offset $3`, filters.sortColumn(), filters.sortDirection())
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	var reviews []*Review
+	args := []interface{}{user, filters.limit(), filters.offset()}
+	rows, err := b.DB.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, Metadata{}, err
+	}
+	defer rows.Close()
+	totalRecords := 0
+	for rows.Next() {
+		var review Review
+		var user User
+		var book Book
+		err := rows.Scan(&totalRecords, &user.ID, &user.Name, &book.ID, &book.Title, &book.AuthorID, &book.PublicationYear, &review.ID, &review.Rating, &review.Review, &review.UserID, &review.BookID)
+		if err != nil {
+			return nil, Metadata{}, err
+		}
+		review.Book = book.Title
+		review.User = user.Name
+		reviews = append(reviews, &review)
+
+	}
+	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
+	return reviews, metadata, nil
+}
+
+func (b BookModel) GetReviewByID(id int64) (*Review, error) {
+	query := `select id, rating, review, book_id, user_id, version, created_at, updated_at from reviews where id = $1`
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	var review Review
+	err := b.DB.QueryRowContext(ctx, query, id).Scan(&review.ID, &review.Rating, &review.Review, &review.BookID, &review.UserID, &review.Version, &review.CreatedAt, &review.UpdatedAt)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrNoRecordFound
+		default:
+			return nil, err
+		}
+	}
+	return &review, nil
+}
+
+func (b BookModel) InsertReview(review *Review) error {
+	query := `insert into reviews (rating, review, book_id, user_id) values ($1, $2, $3, $4) returning id, version`
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	args := []interface{}{review.Rating, review.Review, review.BookID, review.UserID}
+	return b.DB.QueryRowContext(ctx, query, args...).Scan(&review.ID, &review.Version)
+}
+
+func (b BookModel) UpdateReview(review *Review) error {
+	query := `update reviews set rating = $1, review = $2, updated_at = now(), version = version + 1 where id = $3 and version = $4 returning version`
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	err := b.DB.QueryRowContext(ctx, query, review.Rating, review.Review, review.ID, review.Version).Scan(&review.Version)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return ErrNoRecordFound
+		default:
+			return err
+		}
+	}
+	return nil
+}
+
+func (b BookModel) DeleteReview(id int64) error {
+	query := `delete from reviews where id = $1`
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	result, err := b.DB.ExecContext(ctx, query, id)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return ErrNoRecordFound
+		default:
+			return err
+		}
+	}
+	row, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if row != 1 {
+		return ErrNoRecordFound
+	}
+	return nil
+}
 
 func (b BookModel) genresByBook(id int64) ([]*Genre, error) {
 	query := `select id, genre_name, created_at, updated_at from genres where id in (select genre_id from books_genres where book_id = $1) order by genre_name`
@@ -272,4 +398,34 @@ func (b BookModel) genresByBook(id int64) ([]*Genre, error) {
 		genres = append(genres, &genre)
 	}
 	return genres, nil
+}
+
+func (b BookModel) reviewsByBook(id int64) ([]*Review, error) {
+	query := `select u.id, u.name, r.id, r.rating, r.review, r.book_id, r.user_id, 
+       r.version, r.created_at, r.updated_at from users u join reviews r on u.id = r.user_id where book_id = $1`
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	var reviews []*Review
+
+	rows, err := b.DB.QueryContext(ctx, query, id)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrNoRecordFound
+		default:
+			return nil, err
+		}
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var review Review
+		var user User
+		err := rows.Scan(&user.ID, &user.Name, &review.ID, &review.Rating, &review.Review, &review.BookID, &review.UserID, &review.Version, &review.CreatedAt, &review.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+		review.User = user.Name
+		reviews = append(reviews, &review)
+	}
+	return reviews, nil
 }

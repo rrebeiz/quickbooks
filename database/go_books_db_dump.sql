@@ -167,6 +167,45 @@ ALTER SEQUENCE public.genres_id_seq OWNED BY public.genres.id;
 
 
 --
+-- Name: reviews; Type: TABLE; Schema: public; Owner: devuser
+--
+
+CREATE TABLE public.reviews (
+    id bigint NOT NULL,
+    rating integer DEFAULT 1 NOT NULL,
+    review text NOT NULL,
+    book_id bigint NOT NULL,
+    user_id bigint NOT NULL,
+    version integer DEFAULT 1 NOT NULL,
+    created_at timestamp(0) with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp(0) with time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.reviews OWNER TO devuser;
+
+--
+-- Name: reviews_id_seq; Type: SEQUENCE; Schema: public; Owner: devuser
+--
+
+CREATE SEQUENCE public.reviews_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.reviews_id_seq OWNER TO devuser;
+
+--
+-- Name: reviews_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: devuser
+--
+
+ALTER SEQUENCE public.reviews_id_seq OWNED BY public.reviews.id;
+
+
+--
 -- Name: tokens; Type: TABLE; Schema: public; Owner: devuser
 --
 
@@ -273,6 +312,13 @@ ALTER TABLE ONLY public.genres ALTER COLUMN id SET DEFAULT nextval('public.genre
 
 
 --
+-- Name: reviews id; Type: DEFAULT; Schema: public; Owner: devuser
+--
+
+ALTER TABLE ONLY public.reviews ALTER COLUMN id SET DEFAULT nextval('public.reviews_id_seq'::regclass);
+
+
+--
 -- Name: tokens id; Type: DEFAULT; Schema: public; Owner: devuser
 --
 
@@ -347,11 +393,25 @@ COPY public.genres (id, genre_name, created_at, updated_at) FROM stdin;
 
 
 --
+-- Data for Name: reviews; Type: TABLE DATA; Schema: public; Owner: devuser
+--
+
+COPY public.reviews (id, rating, review, book_id, user_id, version, created_at, updated_at) FROM stdin;
+1	5	An amazing self-help book that is worth it's weight in gold.	1	1	1	2022-08-18 04:27:25+00	2022-08-18 04:27:25+00
+2	5	1 of the best, if not the best sci-fi book out there!	2	1	1	2022-08-18 05:51:17+00	2022-08-18 05:51:17+00
+3	5	A great self-help book, it's a must read!	1	3	1	2022-08-18 05:52:52+00	2022-08-18 05:52:52+00
+4	1	test review	1	14	1	2022-08-19 06:41:25+00	2022-08-19 06:41:25+00
+5	1	test review2	2	14	1	2022-08-19 07:14:10+00	2022-08-19 07:14:10+00
+7	3	Updated test review!	2	14	2	2022-08-19 16:21:22+00	2022-08-19 16:24:29+00
+\.
+
+
+--
 -- Data for Name: tokens; Type: TABLE DATA; Schema: public; Owner: devuser
 --
 
 COPY public.tokens (id, user_id, email, token, token_hash, created_at, updated_at, expiry) FROM stdin;
-79	1	admin@test.com	46RSVYVIJLNKMDLXU6QAZ5PZJA	\\x5e6e85b86f3967b5a28abcdcaffbdbcf8a7d4fdc8e6fd7ecd4e86bf2f6ddbfdf	2022-08-07 06:41:02+00	2022-08-07 06:41:02+00	2022-08-08 06:41:02+00
+81	1	admin@test.com	WOTEDA3L4GSUIMTS3G4L42H2HY	\\x9674f0600a854014334205256b5e828812fe4499d907a25c753b94357104f8ce	2022-08-19 06:24:55+00	2022-08-19 06:24:55+00	2022-08-20 06:24:55+00
 \.
 
 
@@ -396,10 +456,17 @@ SELECT pg_catalog.setval('public.genres_id_seq', 9, true);
 
 
 --
+-- Name: reviews_id_seq; Type: SEQUENCE SET; Schema: public; Owner: devuser
+--
+
+SELECT pg_catalog.setval('public.reviews_id_seq', 7, true);
+
+
+--
 -- Name: tokens_id_seq; Type: SEQUENCE SET; Schema: public; Owner: devuser
 --
 
-SELECT pg_catalog.setval('public.tokens_id_seq', 80, true);
+SELECT pg_catalog.setval('public.tokens_id_seq', 81, true);
 
 
 --
@@ -439,6 +506,14 @@ ALTER TABLE ONLY public.books
 
 ALTER TABLE ONLY public.genres
     ADD CONSTRAINT genres_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: reviews reviews_pkey; Type: CONSTRAINT; Schema: public; Owner: devuser
+--
+
+ALTER TABLE ONLY public.reviews
+    ADD CONSTRAINT reviews_pkey PRIMARY KEY (id);
 
 
 --
@@ -494,6 +569,22 @@ ALTER TABLE ONLY public.books_genres
 
 ALTER TABLE ONLY public.books_genres
     ADD CONSTRAINT books_genres_genre_id_fkey FOREIGN KEY (genre_id) REFERENCES public.genres(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: reviews reviews_books_book_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: devuser
+--
+
+ALTER TABLE ONLY public.reviews
+    ADD CONSTRAINT reviews_books_book_id_fkey FOREIGN KEY (book_id) REFERENCES public.books(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: reviews reviews_users_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: devuser
+--
+
+ALTER TABLE ONLY public.reviews
+    ADD CONSTRAINT reviews_users_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --

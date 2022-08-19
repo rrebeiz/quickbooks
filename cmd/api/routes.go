@@ -27,6 +27,9 @@ func (app *application) routes() http.Handler {
 		router.Post("/v1/books", app.createBookHandler)
 		router.Patch("/v1/books/{id}", app.updateBookHandler)
 		router.Delete("/v1/books/{id}", app.deleteBookHandler)
+		router.Post("/v1/books/reviews", app.createReviewHandler)
+		router.Patch("/v1/books/reviews/{id}", app.updateReviewHandler)
+		router.Delete("/v1/books/reviews/{id}", app.deleteReviewHandler)
 	})
 	router.Group(func(router chi.Router) {
 		router.Use(app.adminMiddleware)
@@ -46,6 +49,8 @@ func (app *application) routes() http.Handler {
 	router.Get("/v1/books/{id}", app.getBookByIDHandler)
 	router.Get("/v1/books/slug", app.getBookBySlugHandler)
 	router.Get("/v1/books/authors", app.getAllAuthorsHandler)
+	router.Get("/v1/books/reviews", app.getAllReviewsByUser)
+	router.Get("/v1/books/reviews/{id}", app.getReviewByIDHandler)
 
 	return router
 }

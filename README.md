@@ -46,21 +46,27 @@ Once the server is up you can use Postman, or curl to send requests. A frontend 
 `/v1/books/` returns all books <br>
 `/v1/books/:id` returns a book by ID <br>
 `/v1/books/slug` returns a book by slug <br>
+`/v1/books/authors` returns all authors <br>
+`/v1/books/reviews` returns all reviews <br>
+`/v1/books/reviews/:id` returns a review by ID <br>
 
-`/v1/authors` returns all authors
 
 ## POST
 `/v1/users/login` logs in a user <br>
 `/v1/users` Creates a user <br>
 `/v1/books` Creates a book (Requires authentication) <br>
+`/v1/books/reviews` Creates a review (Requires authentication) <br>
 
 ## PATCH
 `/v1/users/:id` Updates a user (Requires authentication) <br>
 `/v1/books/:id` Updates a book (Requires authentication) <br>
+`/v1/books/reviews/:id` Updates a review (Requires authentication) <br>
 
 ## DELETE
 `/v1/users/:id` Deletes a user (Requires Admin privileges) <br>
 `/v1/users/logout/:id`Force logout a user by destroying their token (Requires Admin privileges) <br>
+`/v1/books/:id` Deletes a book (Requires authentication) <br>
+`/v1/books/reviews/:id` Deletes a review (Requires authentication) <br>
 
 ## Endpoints WIP
 ### Show Users
@@ -224,6 +230,48 @@ Returns json data about all authors
   * Code: 500
   * Content: {"error": "internal server error"}
 
+### Show Reviews
+Returns json data about all reviews, requires authentication
+* URL: `/v1/books/reviews`
+* Method: GET
+* URL Params:
+  * Optional:
+    * user=[string] filter reviews by user default ""
+    * sort=[string] sort by (id, user, -id, -user) default id
+    * page=[int] limit default 1
+    * page_size=[int] offset default 20
+* Body Params: None
+* Headers: Bearer $token
+* Success Response:
+  * Code: 200
+  * Content: {"reviews":[{"id": 1, "rating":5, "review":"test review"}], "metadata":{"current_page":1, "page_size":20, "first_page":1, "last_page":1, "total_records":4}}
+* Error Response:
+  * Code: 401
+  * Content: {"error": "you are not authorized to view this content"}
+  * Code: 400
+  * Content: {"error": "no authorization header received"}
+  * Code: 500
+  * Content: {"error": "internal server error"}
+
+### Show Review
+Returns json data about a review by ID
+* URL: `/v1/books/reviews/:id`
+* Method: GET
+* URL Params:
+  * Required: id=[int]
+* Body Params: None
+* Headers: None
+* Success Response:
+  * Code: 200
+  * Content: {"reviews":[{"id": 1, "rating":5, "review":"test review"}]}}
+* Error Response:
+  * Code: 400
+  * Content: {"error": "no authorization header received"}
+  * Code: 404
+  * Content: {"error": "the requested resource could not be found"}
+  * Code: 500
+  * Content: {"error": "internal server error"}
+
 ### Login User
 Logs in a new using their credentials.
 * URL: `/v1/users`
@@ -306,7 +354,7 @@ Updates a user.
 
 ### Update Book
 Updates a book.
-* URL: `/v1/users/:id`
+* URL: `/v1/books/:id`
 * Method: PATCH
 * URL Params:
   * Required: id=[int]
@@ -316,12 +364,50 @@ Updates a book.
 * Headers: Bearer $token
 * Success Response:
   * Code: 200
-  * Content: {"user":{"id":1, "name":"test", "email":"test@email.com"...}}
+  * Content: {"book":{"id":1, "title":"test", "publication_year":2015...}}
 * Error Response:
   * Code: 404
   * Content: {"error":"the requested resource could not be found"}
   * Code: 422
-  * Content: {"error": {"name":"should not be empty","email":"should not be empty", "password":"should not be empty"}}
+  * Content: {"error": {"title":"should not be empty","author_id":"should not be empty", "publication_year":"should not be empty", "description":"should not be empty", "genres":"should not be empty"}}
+  * Code: 500
+  * Content: {"error": "internal server error"}
+
+### Create Review
+Creates a new review, requires authentication.
+* URL: `/v1/books/reviews`
+* Method: POST
+* URL Params: None
+* Body Params:
+  * Required:
+    * `{"rating": 1, "review":"test review", "book_id":1, "user_id":1}`
+* Success Response:
+  * Code: 200
+  * Content: {"review":{"id":1, "rating":1", "review":"test review"}}
+* Error Response:
+  * Code: 422
+  * Content: {"error": {"rating":"should not be empty","review":"should not be empty", "rating":"should not be more than 5"}}
+  * Code: 500
+  * Content: {"error": "internal server error"}
+
+### Update Review
+Updates a review.
+* URL: `/v1/books/reviews/:id`
+* Method: PATCH
+* URL Params:
+  * Required: id=[int]
+* Body Params:
+  * Optional:
+    * `{"rating":3, "review":updated review}`
+* Headers: Bearer $token
+* Success Response:
+  * Code: 200
+  * Content: {"review":{"id":1, "rating":3, "review":updated review}}
+* Error Response:
+  * Code: 404
+  * Content: {"error":"the requested resource could not be found"}
+  * Code: 422
+  * Content: {"error": {"rating":"should not be empty","review":"should not be empty", "rating":"should not be more than 5"}}
   * Code: 500
   * Content: {"error": "internal server error"}
 
@@ -341,8 +427,6 @@ Deletes a user, requires admin privileges.
   * Content: {"error": "you are not authorized to view this content"}
   * Code: 404
   * Content: {"error":"the requested resource could not be found"}
-  * Code: 422
-  * Content: {"error": {"name":"should not be empty","email":"should not be empty", "password":"should not be empty"}}
   * Code: 500
   * Content: {"error": "internal server error"}
 
@@ -362,7 +446,43 @@ Force logout a user by destroying their token, requires admin privileges
   * Content: {"error": "you are not authorized to view this content"}
   * Code: 404
   * Content: {"error":"the requested resource could not be found"}
-  * Code: 422
-  * Content: {"error": {"name":"should not be empty","email":"should not be empty", "password":"should not be empty"}}
+  * Code: 500
+  * Content: {"error": "internal server error"}
+
+### Delete Book
+Deletes a book, requires authentication.
+* URL: `/v1/books/:id`
+* Method: DELETE
+* URL Params:
+  * Required: id=[int]
+* Body Params: None
+* Headers: Bearer $token
+* Success Response:
+  * Code: 200
+  * Content: {"message":"book with id: 3 has been deleted"}
+* Error Response:
+  * Code: 401
+  * Content: {"error": "you are not authorized to view this content"}
+  * Code: 404
+  * Content: {"error":"the requested resource could not be found"}
+  * Code: 500
+  * Content: {"error": "internal server error"}
+
+### Delete Review
+Deletes a review, requires authentication.
+* URL: `/v1/books/reviews/:id`
+* Method: DELETE
+* URL Params:
+  * Required: id=[int]
+* Body Params: None
+* Headers: Bearer $token
+* Success Response:
+  * Code: 200
+  * Content: {"message":"review with id: 3 has been deleted"}
+* Error Response:
+  * Code: 401
+  * Content: {"error": "you are not authorized to view this content"}
+  * Code: 404
+  * Content: {"error":"the requested resource could not be found"}
   * Code: 500
   * Content: {"error": "internal server error"}
